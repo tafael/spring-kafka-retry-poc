@@ -1,13 +1,27 @@
 package br.com.zup.kafka.app.consumer
 
-import org.apache.kafka.clients.consumer.ConsumerRecord
+import br.com.zup.kafka.framework.annotation.RetryPolicy
 import org.springframework.kafka.annotation.KafkaListener
+import org.springframework.stereotype.Component
+import java.lang.RuntimeException
 
-class MainConsumer {
+@Component
+open class MainConsumer {
 
+    @RetryPolicy(topic = "retry_topic", retries = 3, dlqTopic = "dlq_topic")
     @KafkaListener(topics = ["main_topic"])
-    fun listen(record: ConsumerRecord<Any, Any>) {
-
+    open fun listen(message: String) {
+        println("Consuming message")
+        throw RuntimeException("Bad things")
     }
+
+    @KafkaListener(topics = ["retry_topic"])
+    open fun retry(message: String) {
+        println("Retrying message")
+    }
+
+}
+
+fun main(args: Array<String>) {
 
 }

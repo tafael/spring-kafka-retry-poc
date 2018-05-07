@@ -1,14 +1,9 @@
 package br.com.zup.kafka.framework.consumer
 
-import org.springframework.kafka.listener.MessageListenerContainer
+import org.springframework.kafka.support.serializer.JsonSerializer
 
 
 class MessagePipeline(val baseTopicName: String) {
 
-    private lateinit var messageListenerContainer: MessageListenerContainer
-
-    fun withListener(listener: MessageListener) {
-        messageListenerContainer = MessageListenerContainer()
-    }
 
 }

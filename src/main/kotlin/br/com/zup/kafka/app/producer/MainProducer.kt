@@ -5,13 +5,13 @@ import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Component
 
 @Component
-class MainProducer(val template: KafkaTemplate<String, Message>) {
+class MainProducer(val template: KafkaTemplate<String, Message<String>>) {
 
     companion object {
         const val TOPIC = "main_topic"
     }
 
-    fun send(message: Message) {
+    fun send(message: Message<String>) {
         template.send(TOPIC, message)
     }
 

@@ -4,6 +4,6 @@ import br.com.zup.kafka.framework.Message
 
 interface MessageListener {
 
-    fun onMessage(message: Message)
+    fun onMessage(message: Message<Any>)
 
 }
