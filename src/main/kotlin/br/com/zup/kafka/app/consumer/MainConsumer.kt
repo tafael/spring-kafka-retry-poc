@@ -1,5 +1,6 @@
 package br.com.zup.kafka.app.consumer
 
+import br.com.zup.kafka.framework.annotation.RetryKafkaListener
 import br.com.zup.kafka.framework.annotation.RetryPolicy
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -15,9 +16,11 @@ open class MainConsumer {
         throw RuntimeException("Bad things")
     }
 
+    @RetryKafkaListener
     @KafkaListener(topics = ["retry_topic"])
     open fun retry(message: String) {
         println("Retrying message")
+        throw RuntimeException("Bad things retried")
     }
 
 }

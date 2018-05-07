@@ -1,45 +1,65 @@
 package br.com.zup.kafka.errorhandler
 
-import br.com.zup.kafka.jackson.parseJson
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.listener.KafkaListenerErrorHandler
 import org.springframework.kafka.listener.ListenerExecutionFailedException
+import org.springframework.kafka.support.KafkaHeaders
 import org.springframework.messaging.Message
-import org.springframework.stereotype.Component
+import org.springframework.messaging.support.MessageBuilder
 
-@Component
-class KafkaRetryPolicyErrorHandler : KafkaListenerErrorHandler {
+class KafkaRetryPolicyErrorHandler<K, V>(
+    private val template: KafkaTemplate<K, V>
+): KafkaListenerErrorHandler {
 
-    @Autowired
-    lateinit var template: KafkaTemplate<String, br.com.zup.kafka.framework.Message<String>>
+    private var retryTopic: String? = null
+    private var maxRetries: Int? = null
 
     companion object {
-        const val TOPIC = "retry_topic"
+        const val REMAINING_RETRIES_HEADER = "remaining-retries"
     }
 
-    fun send(message: br.com.zup.kafka.framework.Message<String>) {
-        template.send(TOPIC, message)
+    fun send(message: Message<*>) {
+        template.send(message)
     }
 
-    override fun handleError(message: Message<*>?, exception: ListenerExecutionFailedException?): Any {
+    fun withRetryTopic(retryTopic: String): KafkaRetryPolicyErrorHandler<K, V> =
+        this
+            .apply { this.retryTopic = retryTopic }
+
+    fun withMaxRetries(maxRetries: Int): KafkaRetryPolicyErrorHandler<K, V> =
+        this
+            .apply { this.maxRetries = maxRetries }
+
+    override fun handleError(message: Message<*>, exception: ListenerExecutionFailedException): Any {
         println("Handling error ${exception} with retry policy")
 
-        val retryMessage: br.com.zup.kafka.framework.Message<String> =
-            (message?.payload as String).parseJson(br.com.zup.kafka.framework.Message::class.java) as br.com.zup.kafka.framework.Message<String>
+        val remainingRetries = remainingRetries(message)
+        val retryTopic = retryTopic(message)
 
-        if (retryMessage.retry > 0) {
-            println("retry attempt ${retryMessage.retry} at ${retryMessage.timestamp} ")
-            retryMessage.retry -= 1
-            retryMessage.timestamp.plusMillis(1000)
-            send(retryMessage)
-            // retry
+        if (remainingRetries > 0) {
+
+            MessageBuilder
+                .fromMessage(message)
+                .removeHeader(KafkaHeaders.TOPIC)
+                .removeHeader(KafkaHeaders.PARTITION_ID)
+                .removeHeader(KafkaHeaders.MESSAGE_KEY)
+                .setHeader(KafkaHeaders.TOPIC, retryTopic)
+                .setHeader(REMAINING_RETRIES_HEADER, remainingRetries - 1)
+                //.setHeader("retry_timestamp", Instant.now())
+                .build()
+                .let { send(it) }
+
         } else {
             // dlq
             println("DLQ")
         }
 
-        return retryMessage
+        return "ok"
     }
 
+    private fun remainingRetries(message: Message<*>): Int =
+        message.headers?.get(REMAINING_RETRIES_HEADER) as? Int ?: maxRetries ?: throw IllegalArgumentException("Maximum retries argument not provided")
+
+    private fun retryTopic(message: Message<*>): String =
+        retryTopic ?: message.headers?.get(KafkaHeaders.RECEIVED_TOPIC) as? String ?: throw IllegalArgumentException("Retry topic argument not provided")
 }
