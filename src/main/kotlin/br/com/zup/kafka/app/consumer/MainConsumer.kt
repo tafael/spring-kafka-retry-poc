@@ -1,7 +1,7 @@
 package br.com.zup.kafka.app.consumer
 
-import br.com.zup.kafka.framework.annotation.RetryKafkaListener
-import br.com.zup.kafka.framework.annotation.RetryPolicy
+import io.zup.springframework.kafka.annotation.RetryKafkaListener
+import io.zup.springframework.kafka.annotation.RetryPolicy
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import java.lang.RuntimeException
@@ -23,8 +23,9 @@ open class MainConsumer {
         throw RuntimeException("Bad things retried")
     }
 
-}
-
-fun main(args: Array<String>) {
+    @KafkaListener(topics = ["dlq_topic"])
+    open fun listenDLQ(message: String) {
+        println("Receiveid in dlq topic ${message}")
+    }
 
 }
