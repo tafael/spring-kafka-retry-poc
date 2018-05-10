@@ -6,6 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 interface ConsumerHandler {
     fun onListen(message: String)
@@ -49,4 +50,10 @@ open class Consumer {
         }
     }
 
+    fun resetCount(count: Int) =
+        CountDownLatch(count).let { latch = it }
+
+    fun await() = latch.await(10, TimeUnit.SECONDS)
+
 }
+

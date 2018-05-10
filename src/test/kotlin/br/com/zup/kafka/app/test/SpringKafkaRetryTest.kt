@@ -17,8 +17,6 @@ import org.springframework.kafka.test.rule.KafkaEmbedded
 import org.springframework.kafka.test.utils.ContainerTestUtils
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.junit4.SpringRunner
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 
 @SpringBootTest(classes = [TestApplicationConfig::class])
@@ -63,7 +61,6 @@ class SpringKafkaRetryTest {
                 kafkaEmbedded.getPartitionsPerTopic()
             )
         }
-
         consumer.consumerHandler = consumerHandler
     }
 
@@ -106,12 +103,12 @@ class SpringKafkaRetryTest {
     }
 
     private fun sendAndWaitConsumer(message: String, count: Int) {
-        consumer.latch = CountDownLatch(count)
+        consumer.resetCount(count)
 
         // send the message
         template.send(MAIN_TOPIC, message)
 
-        assert(consumer.latch.await(10, TimeUnit.SECONDS))
+        assert(consumer.await())
     }
 
 }
