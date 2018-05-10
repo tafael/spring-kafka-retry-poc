@@ -34,7 +34,8 @@ class SpringKafkaRetryTest {
 
         @ClassRule
         @JvmField
-        val kafkaEmbedded = KafkaEmbedded(1, true,
+        val kafkaEmbedded = KafkaEmbedded(
+            1, true,
             MAIN_TOPIC,
             RETRY_TOPIC,
             DLQ_TOPIC
@@ -74,7 +75,6 @@ class SpringKafkaRetryTest {
         sendAndWaitConsumer(GOOD_MESSAGE, 1)
 
         verify(consumerHandler, times(1)).onListen(GOOD_MESSAGE)
-        assert(consumer.latch.count == 0L)
 
     }
 
@@ -88,7 +88,7 @@ class SpringKafkaRetryTest {
 
         verify(consumerHandler, times(1)).onListen(BAD_MESSAGE)
         verify(consumerHandler, times(1)).onRetry(any())
-        assert(consumer.latch.count == 0L)
+
     }
 
     @Test
@@ -100,10 +100,8 @@ class SpringKafkaRetryTest {
         sendAndWaitConsumer(BAD_MESSAGE, 5)
 
         verify(consumerHandler, times(1)).onListen(BAD_MESSAGE)
-        verify(consumerHandler, times(3)).onRetry(any())
-        verify(consumerHandler, times(1)).onDlq(any())
-
-        assert(consumer.latch.count == 0L)
+        verify(consumerHandler, times(3)).onRetry(BAD_MESSAGE)
+        verify(consumerHandler, times(1)).onDlq(BAD_MESSAGE)
 
     }
 
@@ -113,7 +111,7 @@ class SpringKafkaRetryTest {
         // send the message
         template.send(MAIN_TOPIC, message)
 
-        consumer.latch.await(10, TimeUnit.SECONDS)
+        assert(consumer.latch.await(10, TimeUnit.SECONDS))
     }
 
 }
